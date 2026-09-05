@@ -1,0 +1,26 @@
+{
+  "summary": "Iter7 tested the small-viewport card dialog scroll fix + sticky Kaydet, and end-to-end badge+animation persistence/render. Frontend: at 1280x600 the card DialogContent computed maxHeight=540px, overflowY=auto; save-card-btn is inside sticky footer and its bounding box (y=493, h=36) sits fully inside the 600px viewport, is_visible=true. Filled card-title-input='TEST VIP', card-link-input='https://example.com', scrolled dialog, filled card-badge-text='VIP', selected card-animation='Parıltı' (glow) and clicked save-card-btn. Toast 'Kolon eklendi' shown; live-preview HTML contains 'card-badge', 'VIP' and 'anim-glow' — verified visually (badge ribbon + glow wrapper). Backend flow (via curl): POST /api/sites/{id}/cards persisted badge_text='VIP' & animation='glow'; PUT /api/sites/{id} {published:true, settings.animation:'glow'} then GET /api/public/resolve?slug=... returned settings.animation='glow' and card with badge_text=VIP animation=glow. Regression: all 28 pytest tests in /app/backend/tests/backend_test.py pass (including card_badge_and_animation_persist_public, site_animation_and_custom_size, page_title/style, border override, bg_overlay, domain resolve, publish, upload, duplicate). save-site-btn onClick payload uses correct field name 'published' (SiteEditor.jsx L65) matching backend SiteUpdate model.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Card dialog (Kolon)", "issues": ["Missing DialogDescription / aria-describedby on DialogContent produces a Radix a11y console warning. Cosmetic, add a <DialogDescription/> for a11y."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/backend_test.py", "/app/test_reports/pytest/pytest_iter7.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Card DialogContent uses `max-h-[90vh] overflow-y-auto` and DialogFooter is `sticky bottom-0` with negative margins to bleed to the dialog edges — works, but at very short viewports (<=500px) the sticky footer can still cover the last field; consider adding pb-4 to inner scroll region to guarantee last field visibility above the sticky footer.",
+    "Radix Dialog a11y warning: add <DialogDescription> (or aria-describedby) to card dialog to silence warning and improve screen-reader UX.",
+    "SiteEditor.jsx still ~594 lines — same suggestion as iter6, split Görünüm/Kolon subcomponents."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "harryginny700@gmail.com / admin123",
+  "seed_data_creation": "Created TEST_UI_Iter6 (frontend flow via browser) and TEST_Iter7Anim / TEST_Iter7B (curl regression). All deleted at end (DELETE /api/sites/{id} -> 200).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Fix verified: card DialogContent max-h-[90vh] overflow-y-auto scrollbar-thin + DialogFooter sticky bottom-0 -mx-6 -mb-6 keeps save-card-btn reachable at 1280x600. Backend Site model uses field name `published` (not is_published). public/resolve only returns data if site.published==true. data-testids used: add-card-btn, card-title-input, card-link-input, card-badge-text, card-animation, save-card-btn, live-preview, set-animation, save-site-btn. Turkish option label for glow is 'Parıltı'.",
+  "rca of the issue": "Original bug: card DialogContent had no max-h/overflow, so at short viewports the Kaydet button was clipped below the fold and users could not save; consequently badge/animation never persisted and the preview looked broken. Fix (already applied): DialogContent gained max-h-[90vh] overflow-y-auto and DialogFooter became sticky bottom-0 with negative margins so Kaydet is always in viewport. Verified at 1280x600: computed maxHeight=540px, overflowY=auto, save-btn y=493 (< 600). Card save now persists badge_text + animation, live-preview renders .card-badge ribbon and .anim-glow wrapper, and /api/public/resolve returns the card with badge/animation after publishing."
+}

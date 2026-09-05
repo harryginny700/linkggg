@@ -500,12 +500,12 @@ export default function SiteEditor() {
 
       {/* Card dialog */}
       <Dialog open={!!cardDialog} onOpenChange={(o) => !o && setCardDialog(null)}>
-        <DialogContent className="bg-zinc-900 border-zinc-800 text-zinc-100 max-w-md">
+        <DialogContent className="bg-zinc-900 border-zinc-800 text-zinc-100 max-w-md max-h-[90vh] overflow-y-auto scrollbar-thin">
           <DialogHeader>
             <DialogTitle className="font-display">{cardDialog?.mode === "new" ? "Yeni Kolon" : "Kolonu Düzenle"}</DialogTitle>
           </DialogHeader>
           {cardDialog && (
-            <div className="space-y-4">
+            <div className="space-y-4 pb-2">
               <div>
                 <Label className="text-zinc-400 text-xs">Başlık / Teklif Metni</Label>
                 <Textarea value={cardDialog.card.title} onChange={(e) => setCardDialog((p) => ({ ...p, card: { ...p.card, title: e.target.value } }))} data-testid="card-title-input" className="mt-1.5 bg-zinc-950 border-zinc-800" placeholder="1000₺ Yeni Üyelere Nakit!" />
@@ -583,7 +583,7 @@ export default function SiteEditor() {
               </div>
             </div>
           )}
-          <DialogFooter>
+          <DialogFooter className="sticky bottom-0 -mx-6 -mb-6 px-6 py-4 bg-zinc-900 border-t border-zinc-800 mt-2">
             <Button data-testid="save-card-btn" onClick={saveCard} className="bg-amber-400 text-black hover:bg-amber-300 font-display font-bold">Kaydet</Button>
           </DialogFooter>
         </DialogContent>
