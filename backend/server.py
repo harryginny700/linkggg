@@ -130,12 +130,13 @@ class HeaderCTA(BaseModel):
 class SiteSettings(BaseModel):
     title: str = "Güvenilir Siteler"
     subtitle: str = ""
+    page_title: str = ""  # browser tab title
     logo_url: str = ""
     show_header: bool = True
     show_footer: bool = True
-    background_type: str = "gradient"  # color | image | gradient
+    background_type: str = "image"  # color | image | gradient
     background_color: str = "#050508"
-    background_image_url: str = ""
+    background_image_url: str = "/backgrounds/casino.jpg"
     gradient_from: str = "#0b0b14"
     gradient_to: str = "#050508"
     columns: int = 3
@@ -145,6 +146,14 @@ class SiteSettings(BaseModel):
     accent_color: str = "#FACC15"
     card_radius: int = 16
     card_size: str = "md"  # sm | md | lg
+    # Card decoration
+    border_style: str = "solid"  # solid | neon | gradient
+    border_width: int = 2
+    border_gradient_from: str = "#FACC15"
+    border_gradient_to: str = "#F97316"
+    card_font_size: int = 18
+    card_font_weight: str = "700"  # 400..900
+    card_text_transform: str = "none"  # none | uppercase | capitalize
     header_ctas: List[HeaderCTA] = Field(default_factory=list)
 
 
@@ -167,6 +176,10 @@ class CardInput(BaseModel):
     link: str = ""
     bg_color: Optional[str] = None
     text_color: Optional[str] = None
+    border_style: Optional[str] = None  # inherit site when None
+    border_color: Optional[str] = None  # solid/neon color override
+    border_from: Optional[str] = None   # gradient override
+    border_to: Optional[str] = None
     span: int = 1  # column span for size control
     active: bool = True
 
@@ -206,6 +219,10 @@ def public_site_payload(site: dict, cards: list) -> dict:
                 "link": c.get("link", ""),
                 "bg_color": c.get("bg_color"),
                 "text_color": c.get("text_color"),
+                "border_style": c.get("border_style"),
+                "border_color": c.get("border_color"),
+                "border_from": c.get("border_from"),
+                "border_to": c.get("border_to"),
                 "span": c.get("span", 1),
                 "clicks": c.get("clicks", 0),
             }
@@ -337,13 +354,7 @@ async def create_card(site_id: str, data: CardInput, current=Depends(get_current
     card = {
         "id": new_id(),
         "site_id": site_id,
-        "logo_url": data.logo_url,
-        "title": data.title,
-        "link": data.link,
-        "bg_color": data.bg_color,
-        "text_color": data.text_color,
-        "span": data.span,
-        "active": data.active,
+        **data.model_dump(),
         "clicks": 0,
         "order": count,
         "created_at": now_iso(),

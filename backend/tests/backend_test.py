@@ -290,3 +290,124 @@ def test_show_header_footer_defaults_true():
     # keys may or may not exist; if missing PublicSiteRenderer treats as true.
     assert s.get("show_header", True) is True
     assert s.get("show_footer", True) is True
+
+
+
+# ---- New feature: page_title, border/text styling, per-card overrides, casino bg (iteration 4) ----
+def test_casino_background_asset_reachable():
+    r = requests.get(f"{BASE_URL}/backgrounds/casino.jpg")
+    assert r.status_code == 200
+    assert r.headers.get("content-type", "").startswith("image/")
+    assert len(r.content) > 1000
+
+
+def test_new_site_defaults_casino_bg_and_style(auth):
+    ts = int(time.time())
+    r = requests.post(f"{API}/sites", headers=auth, json={"name": f"TEST_Defaults_{ts}"})
+    assert r.status_code == 200
+    sid = r.json()["id"]
+    try:
+        s = requests.get(f"{API}/sites/{sid}", headers=auth).json()["site"]["settings"]
+        assert s.get("background_type") == "image"
+        assert s.get("background_image_url") == "/backgrounds/casino.jpg"
+        assert s.get("border_style") == "solid"
+        assert s.get("border_width") == 2
+        assert s.get("card_font_size") == 18
+        assert s.get("card_font_weight") == "700"
+        assert s.get("card_text_transform") == "none"
+        assert s.get("page_title", "") == ""
+    finally:
+        requests.delete(f"{API}/sites/{sid}", headers=auth)
+
+
+def test_page_title_and_style_persist_and_public_resolve(auth):
+    ts = int(time.time())
+    r = requests.post(f"{API}/sites", headers=auth, json={"name": f"TEST_PT_{ts}"})
+    sid = r.json()["id"]
+    try:
+        payload = {
+            "published": True,
+            "settings": {
+                "page_title": "DAYKO - Güncel Giriş",
+                "border_style": "gradient",
+                "border_width": 6,
+                "border_gradient_from": "#FF0080",
+                "border_gradient_to": "#7928CA",
+                "card_font_size": 22,
+                "card_font_weight": "900",
+                "card_text_transform": "uppercase",
+            },
+        }
+        r = requests.put(f"{API}/sites/{sid}", headers=auth, json=payload)
+        assert r.status_code == 200, r.text
+        s = r.json()["settings"]
+        assert s["page_title"] == "DAYKO - Güncel Giriş"
+        assert s["border_style"] == "gradient"
+        assert s["border_width"] == 6
+        assert s["border_gradient_from"] == "#FF0080"
+        assert s["border_gradient_to"] == "#7928CA"
+        assert s["card_font_size"] == 22
+        assert s["card_font_weight"] == "900"
+        assert s["card_text_transform"] == "uppercase"
+
+        # Public resolve returns these
+        slug = requests.get(f"{API}/sites/{sid}", headers=auth).json()["site"]["slug"]
+        r = requests.get(f"{API}/public/resolve", params={"slug": slug})
+        assert r.status_code == 200
+        ps = r.json()["settings"]
+        assert ps["page_title"] == "DAYKO - Güncel Giriş"
+        assert ps["border_style"] == "gradient"
+        assert ps["card_text_transform"] == "uppercase"
+    finally:
+        requests.delete(f"{API}/sites/{sid}", headers=auth)
+
+
+def test_card_border_override_persists_and_public(auth):
+    ts = int(time.time())
+    r = requests.post(f"{API}/sites", headers=auth, json={"name": f"TEST_CardBorder_{ts}"})
+    sid = r.json()["id"]
+    try:
+        requests.put(f"{API}/sites/{sid}", headers=auth, json={"published": True})
+        # Create card with border override (neon)
+        r = requests.post(f"{API}/sites/{sid}/cards", headers=auth, json={
+            "title": "Neon Card",
+            "link": "https://example.com/n",
+            "span": 1,
+            "active": True,
+            "logo_url": "/api/files/test.png",
+            "border_style": "neon",
+            "border_color": "#00FFEA",
+        })
+        assert r.status_code == 200, r.text
+        c1 = r.json()
+        assert c1["border_style"] == "neon"
+        assert c1["border_color"] == "#00FFEA"
+
+        # Create + update to gradient
+        r = requests.post(f"{API}/sites/{sid}/cards", headers=auth, json={
+            "title": "Grad Card", "link": "https://example.com/g", "span": 1, "active": True,
+        })
+        cid = r.json()["id"]
+        r = requests.put(f"{API}/cards/{cid}", headers=auth, json={
+            "title": "Grad Card", "link": "https://example.com/g", "span": 1, "active": True,
+            "border_style": "gradient", "border_from": "#111111", "border_to": "#EEEEEE",
+        })
+        assert r.status_code == 200
+        c2 = r.json()
+        assert c2["border_style"] == "gradient"
+        assert c2["border_from"] == "#111111"
+        assert c2["border_to"] == "#EEEEEE"
+
+        # Public resolve exposes new fields
+        slug = requests.get(f"{API}/sites/{sid}", headers=auth).json()["site"]["slug"]
+        r = requests.get(f"{API}/public/resolve", params={"slug": slug})
+        assert r.status_code == 200
+        cards = r.json()["cards"]
+        by_title = {c["title"]: c for c in cards}
+        assert by_title["Neon Card"]["border_style"] == "neon"
+        assert by_title["Neon Card"]["border_color"] == "#00FFEA"
+        assert by_title["Grad Card"]["border_style"] == "gradient"
+        assert by_title["Grad Card"]["border_from"] == "#111111"
+        assert by_title["Grad Card"]["border_to"] == "#EEEEEE"
+    finally:
+        requests.delete(f"{API}/sites/{sid}", headers=auth)

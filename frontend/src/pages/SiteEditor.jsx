@@ -33,7 +33,7 @@ function Color({ label, value, onChange, testid }) {
   );
 }
 
-const emptyCard = { title: "", link: "", logo_url: "", span: 1, bg_color: "", text_color: "", active: true };
+const emptyCard = { title: "", link: "", logo_url: "", span: 1, bg_color: "", text_color: "", border_style: null, border_color: "", border_from: "", border_to: "", active: true };
 
 export default function SiteEditor() {
   const { id } = useParams();
@@ -179,6 +179,10 @@ export default function SiteEditor() {
                 <Input value={s.subtitle} onChange={(e) => setS("subtitle", e.target.value)} className="mt-1.5 bg-zinc-950 border-zinc-800" />
               </div>
               <div>
+                <Label className="text-zinc-400 text-xs">Sekme Başlığı (tarayıcı sekmesinde görünür)</Label>
+                <Input value={s.page_title || ""} onChange={(e) => setS("page_title", e.target.value)} data-testid="set-page-title" className="mt-1.5 bg-zinc-950 border-zinc-800" placeholder="Örn: Güncel Giriş - Bonuslar" />
+              </div>
+              <div>
                 <Label className="text-zinc-400 text-xs">Logo (opsiyonel)</Label>
                 <div className="mt-1.5">
                   <ImageUpload value={s.logo_url} onChange={(url) => setS("logo_url", url)} testid="site-logo-upload" label="Logo" />
@@ -212,6 +216,15 @@ export default function SiteEditor() {
                     <SelectItem value="image">Görsel</SelectItem>
                   </SelectContent>
                 </Select>
+                <button
+                  type="button"
+                  data-testid="preset-casino-bg"
+                  onClick={() => { setS("background_type", "image"); setS("background_image_url", "/backgrounds/casino.jpg"); }}
+                  className="mt-2 w-full flex items-center gap-3 rounded-lg border border-zinc-800 hover:border-amber-400/60 p-2 transition-colors text-left"
+                >
+                  <img src="/backgrounds/casino.jpg" alt="" className="h-10 w-16 object-cover rounded" />
+                  <span className="text-xs text-zinc-300">Hazır: Casino Arka Planı <span className="text-zinc-500">(tek tıkla uygula)</span></span>
+                </button>
               </div>
               {s.background_type === "color" && <Color label="Arka Plan Rengi" value={s.background_color} onChange={(v) => setS("background_color", v)} testid="set-bg-color" />}
               {s.background_type === "gradient" && (
@@ -262,6 +275,72 @@ export default function SiteEditor() {
                 <Color label="Yazı Rengi" value={s.card_text_color} onChange={(v) => setS("card_text_color", v)} />
                 <Color label="Kolon Kenarlık" value={s.card_border_color} onChange={(v) => setS("card_border_color", v)} />
                 <Color label="Vurgu Rengi" value={s.accent_color} onChange={(v) => setS("accent_color", v)} />
+              </div>
+
+              {/* Kenar stili */}
+              <div className="border-t border-zinc-800 pt-4 space-y-4">
+                <p className="text-sm font-medium text-amber-400">Kolon Kenar Süslemesi</p>
+                <div>
+                  <Label className="text-zinc-400 text-xs">Kenar Stili</Label>
+                  <Select value={s.border_style || "solid"} onValueChange={(v) => setS("border_style", v)}>
+                    <SelectTrigger className="mt-1.5 bg-zinc-950 border-zinc-800" data-testid="set-border-style"><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+                      <SelectItem value="solid">Düz Çizgi</SelectItem>
+                      <SelectItem value="neon">Neon (parlayan)</SelectItem>
+                      <SelectItem value="gradient">Gradyan</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-zinc-400 text-xs">Kenar Kalınlığı</Label>
+                    <span className="text-amber-400 font-bold text-sm">{s.border_width ?? 2}px</span>
+                  </div>
+                  <Slider value={[s.border_width ?? 2]} min={0} max={8} step={1} onValueChange={([v]) => setS("border_width", v)} className="mt-3" />
+                </div>
+                {(s.border_style === "gradient") && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <Color label="Gradyan Başlangıç" value={s.border_gradient_from} onChange={(v) => setS("border_gradient_from", v)} />
+                    <Color label="Gradyan Bitiş" value={s.border_gradient_to} onChange={(v) => setS("border_gradient_to", v)} />
+                  </div>
+                )}
+              </div>
+
+              {/* Metin stili */}
+              <div className="border-t border-zinc-800 pt-4 space-y-4">
+                <p className="text-sm font-medium text-amber-400">Kolon Metni</p>
+                <div>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-zinc-400 text-xs">Yazı Boyutu</Label>
+                    <span className="text-amber-400 font-bold text-sm">{s.card_font_size || 18}px</span>
+                  </div>
+                  <Slider value={[s.card_font_size || 18]} min={12} max={32} step={1} onValueChange={([v]) => setS("card_font_size", v)} className="mt-3" data-testid="set-font-size" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-zinc-400 text-xs">Yazı Kalınlığı</Label>
+                    <Select value={s.card_font_weight || "700"} onValueChange={(v) => setS("card_font_weight", v)}>
+                      <SelectTrigger className="mt-1.5 bg-zinc-950 border-zinc-800"><SelectValue /></SelectTrigger>
+                      <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+                        <SelectItem value="400">Normal</SelectItem>
+                        <SelectItem value="600">Yarı Kalın</SelectItem>
+                        <SelectItem value="700">Kalın</SelectItem>
+                        <SelectItem value="900">Çok Kalın</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-zinc-400 text-xs">Harf Biçimi</Label>
+                    <Select value={s.card_text_transform || "none"} onValueChange={(v) => setS("card_text_transform", v)}>
+                      <SelectTrigger className="mt-1.5 bg-zinc-950 border-zinc-800"><SelectValue /></SelectTrigger>
+                      <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+                        <SelectItem value="none">Normal</SelectItem>
+                        <SelectItem value="uppercase">BÜYÜK HARF</SelectItem>
+                        <SelectItem value="capitalize">Baş Harf Büyük</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </div>
 
               {/* Header CTAs */}
@@ -392,6 +471,30 @@ export default function SiteEditor() {
                 <Color label="Kolon Rengi" value={cardDialog.card.bg_color} onChange={(v) => setCardDialog((p) => ({ ...p, card: { ...p.card, bg_color: v } }))} />
                 <Color label="Yazı Rengi" value={cardDialog.card.text_color} onChange={(v) => setCardDialog((p) => ({ ...p, card: { ...p.card, text_color: v } }))} />
               </div>
+              <div>
+                <Label className="text-zinc-400 text-xs">Kenar Stili (bu kolon için)</Label>
+                <Select
+                  value={cardDialog.card.border_style || "inherit"}
+                  onValueChange={(v) => setCardDialog((p) => ({ ...p, card: { ...p.card, border_style: v === "inherit" ? null : v } }))}
+                >
+                  <SelectTrigger className="mt-1.5 bg-zinc-950 border-zinc-800" data-testid="card-border-style"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+                    <SelectItem value="inherit">Site ayarını kullan</SelectItem>
+                    <SelectItem value="solid">Düz Çizgi</SelectItem>
+                    <SelectItem value="neon">Neon (parlayan)</SelectItem>
+                    <SelectItem value="gradient">Gradyan</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {(cardDialog.card.border_style === "solid" || cardDialog.card.border_style === "neon") && (
+                <Color label="Kenar Rengi" value={cardDialog.card.border_color} onChange={(v) => setCardDialog((p) => ({ ...p, card: { ...p.card, border_color: v } }))} />
+              )}
+              {cardDialog.card.border_style === "gradient" && (
+                <div className="grid grid-cols-2 gap-3">
+                  <Color label="Gradyan Başlangıç" value={cardDialog.card.border_from} onChange={(v) => setCardDialog((p) => ({ ...p, card: { ...p.card, border_from: v } }))} />
+                  <Color label="Gradyan Bitiş" value={cardDialog.card.border_to} onChange={(v) => setCardDialog((p) => ({ ...p, card: { ...p.card, border_to: v } }))} />
+                </div>
+              )}
               <div>
                 <Label className="text-zinc-400 text-xs">Genişlik (kaç kolon kaplasın)</Label>
                 <Select value={String(cardDialog.card.span)} onValueChange={(v) => setCardDialog((p) => ({ ...p, card: { ...p.card, span: Number(v) } }))}>

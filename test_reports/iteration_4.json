@@ -1,0 +1,20 @@
+{
+  "summary": "Iteration 4 verified new features: (1) settings.page_title persists via PUT and drives document.title on /site/demo (observed 'DAYKO - Güncel Giriş'); (2) SiteSettings defaults include background_image_url=/backgrounds/casino.jpg and the asset is reachable HTTP 200 (~587KB); (3) border_style/border_width/gradient/font settings persist and are returned by /api/public/resolve; (4) per-card border_style/border_color/border_from/border_to persist through POST /api/sites/{id}/cards and PUT /api/cards/{id} and are exposed in public payload; (5) public page renders neon-border cards with image-on-top and styled uppercase title bar below (screenshot confirms). Added 4 new pytest tests -> 21/21 pass in ~10.7s. Playwright: logged in, opened site editor, switched to Görünüm tab, verified data-testids set-page-title, preset-casino-bg, set-border-style, set-font-size, live-preview are all present; changed border style to Neon via shadcn Select and dropdown updated.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/backend/tests/backend_test.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "SiteSettings default background_image_url='/backgrounds/casino.jpg' works because the asset is bundled under frontend/public/backgrounds/. Backend does not serve this path; it is intentionally served by the frontend which is correct for a same-origin preview.",
+    "public_site_payload returns border_style/border_color/border_from/border_to per card - values are None when not set (inherit from site). Verified.",
+    "create_card uses **data.model_dump() so new CardInput fields flow through cleanly; PUT /api/cards/{id} also accepts them.",
+    "PublicSiteRenderer sets document.title from settings.page_title only when not in preview mode - safe."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py"],
+  "success_rate": {"backend": "100% (21/21)", "frontend": "100% (all data-testids present, public render correct)"},
+  "test_credentials": "harryginny700@gmail.com / admin123",
+  "seed_data_creation": "Tests create TEST_-prefixed sites and delete them within the same test (finally block).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "New selectors: set-page-title, preset-casino-bg, set-border-style, set-font-size (in Görünüm tab), card-border-style (in card dialog), live-preview, sponsor-card-{n}. Public payload now includes settings.page_title, border_style, border_width, border_gradient_from/to, card_font_size, card_font_weight, card_text_transform; and per-card border_style/border_color/border_from/border_to."
+}
