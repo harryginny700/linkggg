@@ -1,0 +1,27 @@
+{
+  "summary": "Iteration 2 testing: logo upload (card + site), public file serving, drag&drop reorder persistence, and site duplication. Extended /app/backend/tests/backend_test.py with 6 new tests (upload auth, upload+serve roundtrip, upload rejects non-image, duplicate happy path with clicks reset & (Kopya) suffix & published=false & domain empty, duplicate auth, duplicate 404). All 15 pytest tests pass in ~6s. Frontend Playwright: admin login OK; duplicated Demo site via duplicate-site-{id} button -> new site opens in editor with heading 'Demo Reklam Sitesi (Kopya)' and 6 cards copied; card-edit dialog logo upload via hidden card-logo-upload-input successfully uploaded and rendered img with full URL {BACKEND}/api/files/linkads/uploads/<uuid>.png; card saved; card reorder via PUT /api/sites/{id}/cards/reorder persisted and order shown after reload (verified reversed order); site-logo-upload also uploaded and rendered; site published + saved. Cleaned up the duplicated site at the end.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Card edit & new-site dialogs", "issues": ["Radix DialogContent still missing aria-describedby/Description (a11y console warning) — carried over from iteration 1."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/backend_test.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": ["(Optional a11y) Add DialogDescription to Card + New-Site dialogs."],
+  "critical_code_review_comments": [
+    "ImageUpload builds absolute URL with API_BASE + res.data.url which is correct; ensures img renders across public routes.",
+    "SiteEditor drag&drop uses HTML5 DnD (onDragStart/Enter/End) — works but not touch-friendly; reorder API PUT /sites/{id}/cards/reorder does N sequential updates (fine for small lists).",
+    "duplicate_site copies settings by reference from the source dict; because Motor returns a new dict this is safe, but for defense a deep copy would be safer.",
+    "serve_file: if file record exists but object-store fetch fails, returns 404 — swallows real error; could log and 502.",
+    "CORS still allow_origins='*' with allow_credentials=True (harmless w/ JWT header, but browser will ignore credentials)."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py", "/app/test_reports/iteration_2.json"],
+  "success_rate": {"backend": "100% (15/15)", "frontend": "100% (all critical flows)"},
+  "test_credentials": "harryginny700@gmail.com / admin123",
+  "seed_data_creation": "Uploaded 2 tiny 1x1 PNGs to object storage via /api/upload (linkads/uploads/*.png) that remain referenced in db.files. Duplicated site was cleaned up.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All three new features work end-to-end. Backend tests at /app/backend/tests/backend_test.py (15 tests). Public URL: https://multi-domain-ads.preview.emergentagent.com. Duplicate button data-testid=duplicate-site-{id}; upload testids: card-logo-upload-btn/input and site-logo-upload-btn/input; reorder endpoint verified persistent."
+}

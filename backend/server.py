@@ -12,8 +12,9 @@ from typing import List, Optional
 
 import jwt
 import bcrypt
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request
-from fastapi.responses import RedirectResponse
+import requests
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, UploadFile, File
+from fastapi.responses import RedirectResponse, Response
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -28,6 +29,56 @@ db = client[os.environ['DB_NAME']]
 
 JWT_SECRET = os.environ['JWT_SECRET']
 JWT_ALGORITHM = "HS256"
+
+# Object storage
+STORAGE_BASE = (os.environ.get("INTEGRATION_PROXY_URL") or "").strip() or "https://integrations.emergentagent.com"
+STORAGE_URL = STORAGE_BASE.rstrip("/") + "/objstore/api/v1/storage"
+EMERGENT_KEY = os.environ.get("EMERGENT_LLM_KEY")
+APP_NAME = "linkads"
+storage_key = None
+
+MIME_TYPES = {
+    "jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png",
+    "gif": "image/gif", "webp": "image/webp", "svg": "image/svg+xml",
+}
+
+
+def init_storage(force: bool = False):
+    global storage_key
+    if storage_key and not force:
+        return storage_key
+    resp = requests.post(f"{STORAGE_URL}/init", json={"emergent_key": EMERGENT_KEY}, timeout=30)
+    resp.raise_for_status()
+    storage_key = resp.json()["storage_key"]
+    return storage_key
+
+
+def put_object(path: str, data: bytes, content_type: str) -> dict:
+    key = init_storage()
+    resp = requests.put(
+        f"{STORAGE_URL}/objects/{path}",
+        headers={"X-Storage-Key": key, "Content-Type": content_type},
+        data=data, timeout=120,
+    )
+    if resp.status_code == 404:
+        key = init_storage(force=True)
+        resp = requests.put(
+            f"{STORAGE_URL}/objects/{path}",
+            headers={"X-Storage-Key": key, "Content-Type": content_type},
+            data=data, timeout=120,
+        )
+    resp.raise_for_status()
+    return resp.json()
+
+
+def get_object(path: str):
+    key = init_storage()
+    resp = requests.get(f"{STORAGE_URL}/objects/{path}", headers={"X-Storage-Key": key}, timeout=60)
+    if resp.status_code == 404:
+        key = init_storage(force=True)
+        resp = requests.get(f"{STORAGE_URL}/objects/{path}", headers={"X-Storage-Key": key}, timeout=60)
+    resp.raise_for_status()
+    return resp.content, resp.headers.get("Content-Type", "application/octet-stream")
 
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
@@ -377,6 +428,86 @@ async def go(card_id: str):
     return RedirectResponse(url=card["link"], status_code=302)
 
 
+# ---------------------------------------------------------------------------
+# File upload / serving
+# ---------------------------------------------------------------------------
+@api_router.post("/upload")
+async def upload_file(file: UploadFile = File(...), current=Depends(get_current_user)):
+    ext = (file.filename.rsplit(".", 1)[-1] if "." in (file.filename or "") else "png").lower()
+    if ext not in MIME_TYPES:
+        raise HTTPException(status_code=400, detail="Sadece resim dosyaları (png, jpg, webp, gif, svg)")
+    content_type = MIME_TYPES[ext]
+    data = await file.read()
+    if len(data) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Dosya en fazla 5MB olabilir")
+    path = f"{APP_NAME}/uploads/{uuid.uuid4()}.{ext}"
+    try:
+        result = put_object(path, data, content_type)
+    except Exception as e:
+        logger.error("Upload failed: %s", e)
+        raise HTTPException(status_code=502, detail="Yükleme başarısız, tekrar deneyin")
+    stored_path = result.get("path", path)
+    await db.files.insert_one({
+        "id": new_id(),
+        "storage_path": stored_path,
+        "original_filename": file.filename,
+        "content_type": content_type,
+        "size": result.get("size", len(data)),
+        "is_deleted": False,
+        "created_at": now_iso(),
+    })
+    return {"path": stored_path, "url": f"/api/files/{stored_path}"}
+
+
+@api_router.get("/files/{path:path}")
+async def serve_file(path: str):
+    record = await db.files.find_one({"storage_path": path, "is_deleted": False})
+    if not record:
+        raise HTTPException(status_code=404, detail="Dosya bulunamadı")
+    try:
+        data, content_type = get_object(path)
+    except Exception:
+        raise HTTPException(status_code=404, detail="Dosya bulunamadı")
+    return Response(content=data, media_type=record.get("content_type", content_type),
+                    headers={"Cache-Control": "public, max-age=31536000"})
+
+
+# ---------------------------------------------------------------------------
+# Duplicate a site (template copy)
+# ---------------------------------------------------------------------------
+@api_router.post("/sites/{site_id}/duplicate")
+async def duplicate_site(site_id: str, current=Depends(get_current_user)):
+    site = await db.sites.find_one({"id": site_id}, {"_id": 0})
+    if not site:
+        raise HTTPException(status_code=404, detail="Site bulunamadı")
+    base_slug = slugify(site["slug"] + "-kopya")
+    slug = base_slug
+    if await db.sites.find_one({"slug": slug}):
+        slug = f"{base_slug}-{new_id()[:4]}"
+    new_site_id = new_id()
+    new_site = {
+        "id": new_site_id,
+        "name": site["name"] + " (Kopya)",
+        "slug": slug,
+        "domain": "",
+        "published": False,
+        "settings": site.get("settings", {}),
+        "created_at": now_iso(),
+        "updated_at": now_iso(),
+    }
+    await db.sites.insert_one(new_site)
+    cards = await db.cards.find({"site_id": site_id}, {"_id": 0}).sort("order", 1).to_list(1000)
+    for c in cards:
+        nc = dict(c)
+        nc["id"] = new_id()
+        nc["site_id"] = new_site_id
+        nc["clicks"] = 0
+        nc["created_at"] = now_iso()
+        await db.cards.insert_one(nc)
+    new_site.pop("_id", None)
+    return new_site
+
+
 @api_router.get("/")
 async def root():
     return {"message": "Link Reklam Platformu API"}
@@ -454,6 +585,11 @@ async def seed_demo():
 
 @app.on_event("startup")
 async def startup():
+    try:
+        init_storage()
+        logger.info("Storage initialized")
+    except Exception as e:
+        logger.error("Storage init failed: %s", e)
     await db.users.create_index("email", unique=True)
     await db.sites.create_index("slug", unique=True)
     await db.sites.create_index("domain")

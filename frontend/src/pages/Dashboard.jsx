@@ -14,7 +14,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Plus, Settings, Trash2, ExternalLink, MousePointerClick, Layers, LogOut, Link2, Globe } from "lucide-react";
+import { Plus, Settings, Trash2, ExternalLink, MousePointerClick, Layers, LogOut, Link2, Globe, Copy } from "lucide-react";
 
 export default function Dashboard() {
   const { logout, user } = useAuth();
@@ -57,6 +57,16 @@ export default function Dashboard() {
       await api.delete(`/sites/${id}`);
       toast.success("Site silindi");
       load();
+    } catch (e) {
+      toast.error(formatApiError(e.response?.data?.detail));
+    }
+  };
+
+  const duplicate = async (site) => {
+    try {
+      const res = await api.post(`/sites/${site.id}/duplicate`);
+      toast.success("Site kopyalandı");
+      navigate(`/admin/sites/${res.data.id}`);
     } catch (e) {
       toast.error(formatApiError(e.response?.data?.detail));
     }
@@ -180,6 +190,14 @@ export default function Dashboard() {
                     >
                       <Settings size={16} />
                     </Link>
+                    <button
+                      onClick={() => duplicate(site)}
+                      data-testid={`duplicate-site-${site.id}`}
+                      className="p-2 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+                      title="Kopyala"
+                    >
+                      <Copy size={16} />
+                    </button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <button

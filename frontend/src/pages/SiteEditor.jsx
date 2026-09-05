@@ -11,8 +11,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import PublicSiteRenderer from "@/components/PublicSiteRenderer";
+import ImageUpload from "@/components/ImageUpload";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Plus, Trash2, ChevronUp, ChevronDown, Loader2, Eye, Pencil } from "lucide-react";
+import { ArrowLeft, Save, Plus, Trash2, Loader2, Eye, Pencil, GripVertical } from "lucide-react";
 
 function Color({ label, value, onChange, testid }) {
   return (
@@ -40,6 +41,8 @@ export default function SiteEditor() {
   const [cards, setCards] = useState([]);
   const [saving, setSaving] = useState(false);
   const [cardDialog, setCardDialog] = useState(null); // {mode, card}
+  const [dragIdx, setDragIdx] = useState(null);
+  const [overIdx, setOverIdx] = useState(null);
 
   const load = () => {
     api.get(`/sites/${id}`).then((r) => {
@@ -95,13 +98,23 @@ export default function SiteEditor() {
     load();
   };
 
-  const move = async (idx, dir) => {
-    const arr = [...cards];
-    const j = idx + dir;
-    if (j < 0 || j >= arr.length) return;
-    [arr[idx], arr[j]] = [arr[j], arr[idx]];
+  const persistOrder = async (arr) => {
     setCards(arr);
     await api.put(`/sites/${id}/cards/reorder`, { ordered_ids: arr.map((c) => c.id) });
+  };
+
+  const onDrop = async () => {
+    if (dragIdx === null || overIdx === null || dragIdx === overIdx) {
+      setDragIdx(null);
+      setOverIdx(null);
+      return;
+    }
+    const arr = [...cards];
+    const [moved] = arr.splice(dragIdx, 1);
+    arr.splice(overIdx, 0, moved);
+    setDragIdx(null);
+    setOverIdx(null);
+    await persistOrder(arr);
   };
 
   const toggleActive = async (c) => {
@@ -166,8 +179,10 @@ export default function SiteEditor() {
                 <Input value={s.subtitle} onChange={(e) => setS("subtitle", e.target.value)} className="mt-1.5 bg-zinc-950 border-zinc-800" />
               </div>
               <div>
-                <Label className="text-zinc-400 text-xs">Logo URL (opsiyonel)</Label>
-                <Input value={s.logo_url} onChange={(e) => setS("logo_url", e.target.value)} className="mt-1.5 bg-zinc-950 border-zinc-800" placeholder="https://..." />
+                <Label className="text-zinc-400 text-xs">Logo (opsiyonel)</Label>
+                <div className="mt-1.5">
+                  <ImageUpload value={s.logo_url} onChange={(url) => setS("logo_url", url)} testid="site-logo-upload" label="Logo" />
+                </div>
               </div>
 
               <div className="border-t border-zinc-800 pt-4">
@@ -190,8 +205,10 @@ export default function SiteEditor() {
               )}
               {s.background_type === "image" && (
                 <div>
-                  <Label className="text-zinc-400 text-xs">Arka Plan Görsel URL</Label>
-                  <Input value={s.background_image_url} onChange={(e) => setS("background_image_url", e.target.value)} className="mt-1.5 bg-zinc-950 border-zinc-800" placeholder="https://..." />
+                  <Label className="text-zinc-400 text-xs">Arka Plan Görseli</Label>
+                  <div className="mt-1.5">
+                    <ImageUpload value={s.background_image_url} onChange={(url) => setS("background_image_url", url)} testid="bg-upload" label="Arka Plan" />
+                  </div>
                 </div>
               )}
 
@@ -263,12 +280,23 @@ export default function SiteEditor() {
                 <Plus size={16} className="mr-1" /> Reklam Kolonu Ekle
               </Button>
               {cards.length === 0 && <p className="text-zinc-500 text-sm text-center py-8">Kolon yok.</p>}
+              {cards.length > 1 && <p className="text-zinc-600 text-xs">Sıralamak için sürükleyip bırakın.</p>}
               {cards.map((c, idx) => (
-                <div key={c.id} data-testid={`card-row-${idx}`} className="border border-zinc-800 rounded-lg p-3 flex items-center gap-3 bg-zinc-900/40">
-                  <div className="flex flex-col">
-                    <button onClick={() => move(idx, -1)} className="text-zinc-500 hover:text-white" data-testid={`card-up-${idx}`}><ChevronUp size={16} /></button>
-                    <button onClick={() => move(idx, 1)} className="text-zinc-500 hover:text-white" data-testid={`card-down-${idx}`}><ChevronDown size={16} /></button>
-                  </div>
+                <div
+                  key={c.id}
+                  data-testid={`card-row-${idx}`}
+                  draggable
+                  onDragStart={() => setDragIdx(idx)}
+                  onDragEnter={() => setOverIdx(idx)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDragEnd={onDrop}
+                  className={`border rounded-lg p-3 flex items-center gap-3 bg-zinc-900/40 transition-colors ${
+                    overIdx === idx && dragIdx !== null && dragIdx !== idx ? "border-amber-400" : "border-zinc-800"
+                  } ${dragIdx === idx ? "opacity-40" : ""}`}
+                >
+                  <span className="text-zinc-600 cursor-grab active:cursor-grabbing" data-testid={`card-drag-${idx}`}>
+                    <GripVertical size={16} />
+                  </span>
                   <div className="h-9 w-9 rounded flex items-center justify-center text-[10px] font-bold shrink-0" style={{ backgroundColor: c.bg_color || s.card_bg_color, color: c.text_color || s.card_text_color }}>
                     {c.logo_url ? <img src={c.logo_url} alt="" className="max-h-8 max-w-8 object-contain" /> : "AD"}
                   </div>
@@ -338,8 +366,10 @@ export default function SiteEditor() {
                 <Input value={cardDialog.card.link} onChange={(e) => setCardDialog((p) => ({ ...p, card: { ...p.card, link: e.target.value } }))} data-testid="card-link-input" className="mt-1.5 bg-zinc-950 border-zinc-800" placeholder="https://..." />
               </div>
               <div>
-                <Label className="text-zinc-400 text-xs">Logo URL (opsiyonel)</Label>
-                <Input value={cardDialog.card.logo_url} onChange={(e) => setCardDialog((p) => ({ ...p, card: { ...p.card, logo_url: e.target.value } }))} className="mt-1.5 bg-zinc-950 border-zinc-800" placeholder="https://..." />
+                <Label className="text-zinc-400 text-xs">Logo</Label>
+                <div className="mt-1.5">
+                  <ImageUpload value={cardDialog.card.logo_url} onChange={(url) => setCardDialog((p) => ({ ...p, card: { ...p.card, logo_url: url } }))} testid="card-logo-upload" label="Logo" />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <Color label="Kolon Rengi" value={cardDialog.card.bg_color} onChange={(v) => setCardDialog((p) => ({ ...p, card: { ...p.card, bg_color: v } }))} />
