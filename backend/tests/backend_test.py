@@ -293,15 +293,50 @@ def test_show_header_footer_defaults_true():
 
 
 
-# ---- New feature: page_title, border/text styling, per-card overrides, casino bg (iteration 4) ----
-def test_casino_background_asset_reachable():
-    r = requests.get(f"{BASE_URL}/backgrounds/casino.jpg")
+# ---- Calm background presets + bg_overlay (iteration 6) ----
+@pytest.mark.parametrize("name", ["calm-dark.jpg", "calm-felt.jpg", "calm-suits.jpg"])
+def test_calm_background_asset_reachable(name):
+    r = requests.get(f"{BASE_URL}/backgrounds/{name}")
     assert r.status_code == 200
     assert r.headers.get("content-type", "").startswith("image/")
     assert len(r.content) > 1000
 
 
-def test_new_site_defaults_casino_bg_and_style(auth):
+def test_old_flashy_backgrounds_removed():
+    for name in ["casino.jpg", "casino-chips.jpg", "roulette.jpg", "gold.jpg", "felt.jpg", "cartoon.jpg"]:
+        r = requests.get(f"{BASE_URL}/backgrounds/{name}")
+        # SPA returns index.html for missing static; verify not an image
+        ct = r.headers.get("content-type", "")
+        assert not ct.startswith("image/"), f"{name} should be gone got {ct}"
+
+
+def test_bg_overlay_persist_and_public(auth):
+    ts = int(time.time())
+    r = requests.post(f"{API}/sites", headers=auth, json={"name": f"TEST_OV_{ts}"})
+    sid = r.json()["id"]
+    try:
+        r = requests.put(f"{API}/sites/{sid}", headers=auth, json={
+            "published": True,
+            "settings": {"background_type": "image",
+                          "background_image_url": "/backgrounds/calm-felt.jpg",
+                          "bg_overlay": 85},
+        })
+        assert r.status_code == 200, r.text
+        s = r.json()["settings"]
+        assert s["bg_overlay"] == 85
+        assert s["background_image_url"] == "/backgrounds/calm-felt.jpg"
+
+        slug = requests.get(f"{API}/sites/{sid}", headers=auth).json()["site"]["slug"]
+        r = requests.get(f"{API}/public/resolve", params={"slug": slug})
+        assert r.status_code == 200
+        ps = r.json()["settings"]
+        assert ps["bg_overlay"] == 85
+        assert ps["background_image_url"] == "/backgrounds/calm-felt.jpg"
+    finally:
+        requests.delete(f"{API}/sites/{sid}", headers=auth)
+
+
+def test_new_site_defaults_calm_bg_and_style(auth):
     ts = int(time.time())
     r = requests.post(f"{API}/sites", headers=auth, json={"name": f"TEST_Defaults_{ts}"})
     assert r.status_code == 200
@@ -309,7 +344,8 @@ def test_new_site_defaults_casino_bg_and_style(auth):
     try:
         s = requests.get(f"{API}/sites/{sid}", headers=auth).json()["site"]["settings"]
         assert s.get("background_type") == "image"
-        assert s.get("background_image_url") == "/backgrounds/casino.jpg"
+        assert s.get("background_image_url") == "/backgrounds/calm-dark.jpg"
+        assert s.get("bg_overlay") == 60
         assert s.get("border_style") == "solid"
         assert s.get("border_width") == 2
         assert s.get("card_font_size") == 18

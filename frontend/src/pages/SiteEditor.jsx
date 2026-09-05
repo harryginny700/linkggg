@@ -216,33 +216,6 @@ export default function SiteEditor() {
                     <SelectItem value="image">Görsel</SelectItem>
                   </SelectContent>
                 </Select>
-                <div className="mt-2">
-                  <p className="text-xs text-zinc-500 mb-1.5">Hazır Arka Planlar (tek tıkla uygula)</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { src: "/backgrounds/casino.jpg", label: "Casino Salon" },
-                      { src: "/backgrounds/casino-chips.jpg", label: "Chip & Kart" },
-                      { src: "/backgrounds/casino-roulette.jpg", label: "Rulet Neon" },
-                      { src: "/backgrounds/casino-gold.jpg", label: "Altın Işıltı" },
-                      { src: "/backgrounds/casino-felt.jpg", label: "Zar & Çuha" },
-                      { src: "/backgrounds/casino-cartoon.jpg", label: "3D Casino" },
-                    ].map((bg, i) => {
-                      const active = s.background_type === "image" && s.background_image_url === bg.src;
-                      return (
-                        <button
-                          key={bg.src}
-                          type="button"
-                          data-testid={i === 0 ? "preset-casino-bg" : `preset-bg-${i}`}
-                          onClick={() => { setS("background_type", "image"); setS("background_image_url", bg.src); }}
-                          className={`relative rounded-lg overflow-hidden border transition-colors ${active ? "border-amber-400 ring-1 ring-amber-400" : "border-zinc-800 hover:border-amber-400/60"}`}
-                        >
-                          <img src={bg.src} alt={bg.label} className="h-16 w-full object-cover" />
-                          <span className="absolute bottom-0 inset-x-0 bg-black/60 text-[10px] text-zinc-200 py-0.5 text-center">{bg.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
               </div>
               {s.background_type === "color" && <Color label="Arka Plan Rengi" value={s.background_color} onChange={(v) => setS("background_color", v)} testid="set-bg-color" />}
               {s.background_type === "gradient" && (
@@ -252,10 +225,47 @@ export default function SiteEditor() {
                 </div>
               )}
               {s.background_type === "image" && (
-                <div>
-                  <Label className="text-zinc-400 text-xs">Arka Plan Görseli</Label>
-                  <div className="mt-1.5">
-                    <ImageUpload value={s.background_image_url} onChange={(url) => setS("background_image_url", url)} testid="bg-upload" label="Arka Plan" />
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-zinc-400 text-xs">Kendi Görselini Yükle</Label>
+                    <div className="mt-1.5">
+                      <ImageUpload value={s.background_image_url} onChange={(url) => setS("background_image_url", url)} testid="bg-upload" label="Arka Plan" />
+                    </div>
+                    <p className="text-[11px] text-zinc-600 mt-1">Bilgisayarından kendi arka plan görselini yükle (JPG/PNG/WEBP).</p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs text-zinc-500 mb-1.5">Sade Hazır Arka Planlar</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { src: "/backgrounds/calm-dark.jpg", label: "Sade Karanlık" },
+                        { src: "/backgrounds/calm-felt.jpg", label: "Çuha" },
+                        { src: "/backgrounds/calm-suits.jpg", label: "Semboller" },
+                      ].map((bg, i) => {
+                        const active = s.background_image_url === bg.src;
+                        return (
+                          <button
+                            key={bg.src}
+                            type="button"
+                            data-testid={i === 0 ? "preset-casino-bg" : `preset-bg-${i}`}
+                            onClick={() => setS("background_image_url", bg.src)}
+                            className={`relative rounded-lg overflow-hidden border transition-colors ${active ? "border-amber-400 ring-1 ring-amber-400" : "border-zinc-800 hover:border-amber-400/60"}`}
+                          >
+                            <img src={bg.src} alt={bg.label} className="h-14 w-full object-cover" />
+                            <span className="absolute bottom-0 inset-x-0 bg-black/60 text-[9px] text-zinc-200 py-0.5 text-center">{bg.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-zinc-400 text-xs">Arka Planı Karart</Label>
+                      <span className="text-amber-400 font-bold text-sm">%{s.bg_overlay ?? 60}</span>
+                    </div>
+                    <Slider value={[s.bg_overlay ?? 60]} min={0} max={95} step={5} onValueChange={([v]) => setS("bg_overlay", v)} className="mt-3" data-testid="set-bg-overlay" />
+                    <p className="text-[11px] text-zinc-600 mt-1">Yükseldikçe arka plan koyulaşır, yazılar daha okunaklı olur.</p>
                   </div>
                 </div>
               )}

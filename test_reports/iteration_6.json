@@ -1,0 +1,20 @@
+{
+  "summary": "Iter6 (calm backgrounds + bg_overlay + prominent upload) tested end-to-end. Extended /app/backend/tests/backend_test.py with 6 new tests covering calm-dark/felt/suits asset reachability, removal of old flashy assets, bg_overlay persistence via PUT+/api/public/resolve, and new SiteSettings defaults (background_type=image, background_image_url=/backgrounds/calm-dark.jpg, bg_overlay=60). Backend pytest: 28 passed, 0 failed. UI flow tested in real browser through /admin: created site, opened Görünüm tab, verified data-testids (bg-upload-btn, bg-upload-input, preset-casino-bg, preset-bg-1, preset-bg-2, set-bg-overlay), clicked preset-bg-2 -> settings.background_image_url=/backgrounds/calm-suits.jpg persisted; moved set-bg-overlay slider (60->75) persisted via PUT /api/sites/{id}; uploaded a PNG via bg-upload-input -> settings.background_image_url updated to https://.../api/files/<id>.png. Verified /site/demo renders backgroundImage as 'linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)), url(.../backgrounds/calm-dark.jpg)' matching demo bg_overlay=55.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/backend/tests/backend_test.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "SiteEditor.jsx is ~594 lines; consider splitting the appearance tab and card dialog into subcomponents for maintainability.",
+    "Sonner toasts appear at top-right and can visually overlap the 'Kaydet' button on smaller heights. Playwright clicks with force=True still work, but real users on <900px height might occasionally hit the toast. Consider a top-offset for toasts when in the editor.",
+    "ImageUpload persists an absolute URL (API_BASE + /api/files/...); domain migrations could break saved refs. Consider storing the relative /api/files/... form."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "harryginny700@gmail.com / admin123",
+  "seed_data_creation": "Test sites are created with TEST_ prefix inside each test and deleted in the same test/finally.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "bg_overlay is int 0-95 step 5 (default 60). Only 3 calm presets: /backgrounds/calm-dark.jpg, /backgrounds/calm-felt.jpg, /backgrounds/calm-suits.jpg. Old flashy assets removed (SPA serves index.html for /backgrounds/casino.jpg etc., so assert content-type is not image/, not 404). data-testids: bg-upload-btn/bg-upload-input, preset-casino-bg (calm-dark), preset-bg-1 (calm-felt), preset-bg-2 (calm-suits), set-bg-overlay. Demo site currently set to calm-dark.jpg with bg_overlay=55.",
+  "rca of the issue": "N/A - no functional bugs found."
+}

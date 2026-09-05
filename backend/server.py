@@ -136,7 +136,8 @@ class SiteSettings(BaseModel):
     show_footer: bool = True
     background_type: str = "image"  # color | image | gradient
     background_color: str = "#050508"
-    background_image_url: str = "/backgrounds/casino.jpg"
+    background_image_url: str = "/backgrounds/calm-dark.jpg"
+    bg_overlay: int = 60  # image darkening overlay percent (0-100)
     gradient_from: str = "#0b0b14"
     gradient_to: str = "#050508"
     columns: int = 3

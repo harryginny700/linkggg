@@ -5,8 +5,9 @@ import { goUrl } from "@/lib/api";
 function bgStyle(s) {
   if (!s) return { background: "#050508" };
   if (s.background_type === "image" && s.background_image_url) {
+    const ov = Math.max(0, Math.min(100, s.bg_overlay ?? 60)) / 100;
     return {
-      backgroundImage: `linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.75)), url(${s.background_image_url})`,
+      backgroundImage: `linear-gradient(rgba(0,0,0,${ov}), rgba(0,0,0,${ov})), url(${s.background_image_url})`,
       backgroundSize: "cover",
       backgroundPosition: "center",
       backgroundAttachment: "fixed",
