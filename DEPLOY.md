@@ -76,12 +76,14 @@ CORS_ORIGINS="*"
 JWT_SECRET="BURAYA-UZUN-RASTGELE-GIZLI-ANAHTAR"
 ADMIN_EMAIL="sizin@mail.com"
 ADMIN_PASSWORD="guclu-bir-sifre"
-EMERGENT_LLM_KEY="sk-emergent-..."   # logo yükleme (object storage) için
+UPLOAD_DIR="/opt/linkads/backend/uploads"   # logolar bu klasöre kaydedilir
 ```
 
 > ⚠️ `JWT_SECRET` için güçlü rastgele değer üretin: `openssl rand -hex 32`
 >
-> ℹ️ **Logo yükleme (object storage)** özelliği Emergent entegrasyon proxy'sini kullanır ve `EMERGENT_LLM_KEY` gerektirir. Kendi sunucunuzda bu servise erişiminiz yoksa, logoları harici bir görsel URL'i ile de girebilirsiniz; ya da bu kısmı yerel disk / S3 depolamaya çevirmek için bize söyleyin, uyarlayalım.
+> ✅ **Logo yükleme tamamen yereldir.** Yüklenen görseller `UPLOAD_DIR` klasörüne diske kaydedilir ve `/api/files/<dosya>` üzerinden sunulur. Hiçbir harici servise (object storage vb.) bağımlılık yoktur. Klasörü belirtmezseniz varsayılan olarak `backend/uploads` kullanılır.
+>
+> 📁 `UPLOAD_DIR`'in yazılabilir olduğundan emin olun: `sudo mkdir -p /opt/linkads/backend/uploads && sudo chown -R www-data:www-data /opt/linkads/backend/uploads`. Yedeklemek isterseniz bu klasörü + MongoDB'yi yedekleyin.
 
 ### Backend'i systemd servisi yapın
 `/etc/systemd/system/linkads-backend.service`:
@@ -248,4 +250,6 @@ sudo tail -f /var/log/nginx/error.log      # nginx
 
 **S: Bir domaine giriyorum ama site açılmıyor?**  Kontrol edin: (1) DNS A kaydı doğru IP'yi gösteriyor mu (`dig site1.com`), (2) o domain backoffice'te bir siteye bağlı ve **yayında** mı, (3) SSL sertifikası domaini kapsıyor mu.
 
-**S: Logo yükleme çalışmıyor.**  Object storage Emergent proxy'sine bağlıdır; kendi sunucunuzda erişilemiyorsa harici görsel URL kullanın veya yerel/S3 depolamaya çevirtmek için talep edin.
+**S: Logo yükleme çalışmıyor.**  Yüklemeler yereldir; `UPLOAD_DIR` klasörünün var olduğundan ve backend'i çalıştıran kullanıcının (örn. `www-data`) o klasöre yazma iznine sahip olduğundan emin olun. Loglara bakın: `sudo journalctl -u linkads-backend -f`.
+
+**S: Yüklediğim logolar kayboldu.**  `UPLOAD_DIR` diskte kalıcıdır. Sunucu taşırken/yeniden kurarken bu klasörü ve MongoDB verisini birlikte yedekleyip taşıyın.

@@ -12,7 +12,6 @@ from typing import List, Optional
 
 import jwt
 import bcrypt
-import requests
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, UploadFile, File
 from fastapi.responses import RedirectResponse, Response
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -30,12 +29,9 @@ db = client[os.environ['DB_NAME']]
 JWT_SECRET = os.environ['JWT_SECRET']
 JWT_ALGORITHM = "HS256"
 
-# Object storage
-STORAGE_BASE = (os.environ.get("INTEGRATION_PROXY_URL") or "").strip() or "https://integrations.emergentagent.com"
-STORAGE_URL = STORAGE_BASE.rstrip("/") + "/objstore/api/v1/storage"
-EMERGENT_KEY = os.environ.get("EMERGENT_LLM_KEY")
-APP_NAME = "linkads"
-storage_key = None
+# Local file storage (works on your own server; UPLOAD_DIR is persistent on disk)
+UPLOAD_DIR = Path(os.environ.get("UPLOAD_DIR", str(ROOT_DIR / "uploads")))
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 MIME_TYPES = {
     "jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png",
@@ -43,42 +39,19 @@ MIME_TYPES = {
 }
 
 
-def init_storage(force: bool = False):
-    global storage_key
-    if storage_key and not force:
-        return storage_key
-    resp = requests.post(f"{STORAGE_URL}/init", json={"emergent_key": EMERGENT_KEY}, timeout=30)
-    resp.raise_for_status()
-    storage_key = resp.json()["storage_key"]
-    return storage_key
+def save_file(data: bytes, ext: str) -> str:
+    """Save bytes to UPLOAD_DIR, return the stored filename."""
+    filename = f"{uuid.uuid4()}.{ext}"
+    (UPLOAD_DIR / filename).write_bytes(data)
+    return filename
 
 
-def put_object(path: str, data: bytes, content_type: str) -> dict:
-    key = init_storage()
-    resp = requests.put(
-        f"{STORAGE_URL}/objects/{path}",
-        headers={"X-Storage-Key": key, "Content-Type": content_type},
-        data=data, timeout=120,
-    )
-    if resp.status_code == 404:
-        key = init_storage(force=True)
-        resp = requests.put(
-            f"{STORAGE_URL}/objects/{path}",
-            headers={"X-Storage-Key": key, "Content-Type": content_type},
-            data=data, timeout=120,
-        )
-    resp.raise_for_status()
-    return resp.json()
+def read_file(filename: str) -> bytes:
+    fpath = (UPLOAD_DIR / filename).resolve()
+    if UPLOAD_DIR.resolve() not in fpath.parents or not fpath.is_file():
+        raise FileNotFoundError(filename)
+    return fpath.read_bytes()
 
-
-def get_object(path: str):
-    key = init_storage()
-    resp = requests.get(f"{STORAGE_URL}/objects/{path}", headers={"X-Storage-Key": key}, timeout=60)
-    if resp.status_code == 404:
-        key = init_storage(force=True)
-        resp = requests.get(f"{STORAGE_URL}/objects/{path}", headers={"X-Storage-Key": key}, timeout=60)
-    resp.raise_for_status()
-    return resp.content, resp.headers.get("Content-Type", "application/octet-stream")
 
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
@@ -442,23 +415,21 @@ async def upload_file(file: UploadFile = File(...), current=Depends(get_current_
     data = await file.read()
     if len(data) > 5 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="Dosya en fazla 5MB olabilir")
-    path = f"{APP_NAME}/uploads/{uuid.uuid4()}.{ext}"
     try:
-        result = put_object(path, data, content_type)
+        filename = save_file(data, ext)
     except Exception as e:
         logger.error("Upload failed: %s", e)
-        raise HTTPException(status_code=502, detail="Yükleme başarısız, tekrar deneyin")
-    stored_path = result.get("path", path)
+        raise HTTPException(status_code=500, detail="Yükleme başarısız, tekrar deneyin")
     await db.files.insert_one({
         "id": new_id(),
-        "storage_path": stored_path,
+        "storage_path": filename,
         "original_filename": file.filename,
         "content_type": content_type,
-        "size": result.get("size", len(data)),
+        "size": len(data),
         "is_deleted": False,
         "created_at": now_iso(),
     })
-    return {"path": stored_path, "url": f"/api/files/{stored_path}"}
+    return {"path": filename, "url": f"/api/files/{filename}"}
 
 
 @api_router.get("/files/{path:path}")
@@ -467,10 +438,10 @@ async def serve_file(path: str):
     if not record:
         raise HTTPException(status_code=404, detail="Dosya bulunamadı")
     try:
-        data, content_type = get_object(path)
+        data = read_file(path)
     except Exception:
         raise HTTPException(status_code=404, detail="Dosya bulunamadı")
-    return Response(content=data, media_type=record.get("content_type", content_type),
+    return Response(content=data, media_type=record.get("content_type", "application/octet-stream"),
                     headers={"Cache-Control": "public, max-age=31536000"})
 
 
@@ -587,11 +558,7 @@ async def seed_demo():
 
 @app.on_event("startup")
 async def startup():
-    try:
-        init_storage()
-        logger.info("Storage initialized")
-    except Exception as e:
-        logger.error("Storage init failed: %s", e)
+    logger.info("Uploads dir: %s", UPLOAD_DIR)
     await db.users.create_index("email", unique=True)
     await db.sites.create_index("slug", unique=True)
     await db.sites.create_index("domain")
