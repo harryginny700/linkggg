@@ -25,11 +25,14 @@ export default function PublicSiteRenderer({ data, previewMode = false }) {
   const cards = data.cards || [];
   const accent = s.accent_color || "#FACC15";
   const minH = sizeMap[s.card_size] || 160;
+  const showHeader = s.show_header !== false;
+  const showFooter = s.show_footer !== false;
 
   return (
     <div className="min-h-screen w-full" style={bgStyle(s)}>
       <div className="max-w-5xl mx-auto px-4 py-8 sm:py-12">
         {/* Header */}
+        {showHeader && (
         <header className="flex flex-col items-center text-center gap-3 mb-8">
           {s.logo_url ? (
             <img src={s.logo_url} alt="logo" className="h-16 object-contain" data-testid="public-logo" />
@@ -65,6 +68,7 @@ export default function PublicSiteRenderer({ data, previewMode = false }) {
             </div>
           )}
         </header>
+        )}
 
         {/* Grid */}
         {cards.length === 0 ? (
@@ -124,9 +128,11 @@ export default function PublicSiteRenderer({ data, previewMode = false }) {
           </div>
         )}
 
+        {showFooter && (
         <footer className="text-center text-xs text-zinc-600 mt-12">
           © {new Date().getFullYear()} {data.name}
         </footer>
+        )}
       </div>
     </div>
   );

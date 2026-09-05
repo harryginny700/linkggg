@@ -185,6 +185,23 @@ export default function SiteEditor() {
                 </div>
               </div>
 
+              <div className="border-t border-zinc-800 pt-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Üst Başlık Alanı</p>
+                    <p className="text-xs text-zinc-500">Başlık, logo ve butonları göster</p>
+                  </div>
+                  <Switch checked={s.show_header !== false} onCheckedChange={(v) => setS("show_header", v)} data-testid="set-show-header" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Alt Bilgi (Footer)</p>
+                    <p className="text-xs text-zinc-500">Sayfa altındaki telif yazısı</p>
+                  </div>
+                  <Switch checked={s.show_footer !== false} onCheckedChange={(v) => setS("show_footer", v)} data-testid="set-show-footer" />
+                </div>
+              </div>
+
               <div className="border-t border-zinc-800 pt-4">
                 <Label className="text-zinc-400 text-xs">Arka Plan Tipi</Label>
                 <Select value={s.background_type} onValueChange={(v) => setS("background_type", v)}>

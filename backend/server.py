@@ -158,6 +158,8 @@ class SiteSettings(BaseModel):
     title: str = "Güvenilir Siteler"
     subtitle: str = ""
     logo_url: str = ""
+    show_header: bool = True
+    show_footer: bool = True
     background_type: str = "gradient"  # color | image | gradient
     background_color: str = "#050508"
     background_image_url: str = ""
