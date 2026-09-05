@@ -1,0 +1,112 @@
+{
+  "theme_strategy": {
+    "public_site": "Electric & Neon Archetype (Dark mode only). Deep dark backgrounds, glossy textures, glowing neon accents to match casino/betting aesthetics.",
+    "admin_backoffice": "Swiss & High-Contrast (Dark mode preferred). Professional, minimal, data-dense, authoritative."
+  },
+  "typography": {
+    "headings_font": "Outfit, sans-serif",
+    "body_font": "Manrope, sans-serif",
+    "notes": "Use Outfit for high-impact, bold headers and Manrope for legible body text. Import via Google Fonts."
+  },
+  "colors": {
+    "public_site": {
+      "background": "#050508",
+      "surface": "#12121A",
+      "primary_accent": "#FACC15",
+      "secondary_accent": "#22C55E",
+      "text_primary": "#FFFFFF",
+      "text_secondary": "#A1A1AA",
+      "card_hover_glow": "rgba(250, 204, 21, 0.3)"
+    },
+    "admin_backoffice": {
+      "background": "#09090B",
+      "surface": "#18181B",
+      "primary": "#3B82F6",
+      "text_primary": "#F4F4F5",
+      "border": "#27272A"
+    },
+    "forbidden_colors": [
+      "#7351B7",
+      "#1B93A4"
+    ]
+  },
+  "visual_enhancers": {
+    "public_site": {
+      "surfaces": "Glassmorphism for floating headers (backdrop-blur-xl bg-black/60). Cards use 'Tracing Beam' or glowing border on hover.",
+      "shadows": "Intense neon drop-shadows on hover for active sponsor cards."
+    },
+    "admin_backoffice": {
+      "surfaces": "Grid Borders (The 'Technical' Look). Expose the skeleton. Subtle 1px borders for tables and layout containers.",
+      "shadows": "Minimal. Rely on 1px borders and background contrast for depth."
+    }
+  },
+  "grids_and_layouts": {
+    "public_site": "Responsive 'Bento' or CSS Grid for Sponsor cards. grid-cols-2 md:grid-cols-3 lg:grid-cols-4 or up to 6 as per admin config. gap-4 to gap-6. Generous padding p-4.",
+    "admin_backoffice": "High Density Grid. Sidebar navigation + Main content area. Table structures for site and link management."
+  },
+  "components": {
+    "public_sponsor_card": "A rounded-xl or rounded-2xl div, solid dark surface, hover:translate-y-[-4px] hover:shadow-[0_0_15px_var(--primary-accent)]. Contains logo (center) + offer text (bottom).",
+    "admin_forms": "Shadcn UI Input, Switch, Select, Tabs. Heavily customized to fit the sleek dark theme.",
+    "admin_tables": "Cardless, dense data tables. border-collapse with subtle border-b for rows."
+  },
+  "motion": {
+    "hover_states": "Sponsor cards MUST scale up (scale-105) and emit a box-shadow glow. Buttons should have a slight brightness increase.",
+    "page_transitions": "Framer motion for subtle fade-in of the grid items (staggered)."
+  },
+  "accessibility": {
+    "contrast": "Ensure APCA contrast on all text over dark backgrounds. Offer text on cards must be high contrast.",
+    "focus_states": "focus:ring-2 focus:ring-primary focus:outline-none for all interactive elements.",
+    "testing": "All interactive elements MUST have data-testid attributes (e.g., data-testid='sponsor-card-1', data-testid='admin-login-btn')."
+  },
+  "image_urls": {
+    "background_textures": [
+      {
+        "url": "https://images.unsplash.com/photo-1710438399422-2fca27686bcd?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1NzZ8MHwxfHNlYXJjaHwxfHxkYXJrJTIwYWJzdHJhY3QlMjBnbG93aW5nJTIwYmFja2dyb3VuZHxlbnwwfHx8fDE3ODg1OTc2NzF8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Dark abstract glowing background for public site header or overall body bg.",
+        "category": "backgrounds"
+      }
+    ],
+    "dummy_sponsor_logos": [
+      {
+        "url": "https://images.unsplash.com/photo-1644166186783-35d911470ff0?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzF8MHwxfHNlYXJjaHwxfHxicmFuZCUyMGxvZ28lMjB3aGl0ZSUyMGJhY2tncm91bmR8ZW58MHx8fHwxNzg4NTk3Njc1fDA&ixlib=rb-4.1.0&q=85",
+        "description": "Mercedes Logo (use with object-contain)",
+        "category": "sponsors"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1700887938966-01f0450aee8c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzF8MHwxfHNlYXJjaHwzfHxicmFuZCUyMGxvZ28lMjB3aGl0ZSUyMGJhY2tncm91bmR8ZW58MHx8fHwxNzg4NTk3Njc1fDA&ixlib=rb-4.1.0&q=85",
+        "description": "Coca Cola Logo",
+        "category": "sponsors"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1586867026567-b9b63ae58472?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzF8MHwxfHNlYXJjaHw0fHxicmFuZCUyMGxvZ28lMjB3aGl0ZSUyMGJhY2tncm91bmR8ZW58MHx8fHwxNzg4NTk3Njc1fDA&ixlib=rb-4.1.0&q=85",
+        "description": "Marshall Logo",
+        "category": "sponsors"
+      }
+    ],
+    "admin_avatar": [
+      {
+        "url": "https://images.unsplash.com/photo-1740252117044-2af197eea287?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Njl8MHwxfHNlYXJjaHwxfHx1c2VyJTIwYXZhdGFyJTIwZmxhdCUyMGNvbG9yfGVufDB8fHx8MTc4ODU5NzY4Mnww&ixlib=rb-4.1.0&q=85",
+        "description": "Admin user avatar",
+        "category": "avatars"
+      }
+    ]
+  },
+  "instructions_to_main_agent": [
+    "Do NOT use .tsx, all components must be .js or .jsx.",
+    "Implement a unified backoffice that allows dynamic editing of the public site's layout (column count, colors, background).",
+    "Public site MUST default to a dark, glossy casino/betting aesthetic. Use neon accents (yellows, greens) and dark gradients for depth.",
+    "Avoid standard Shadcn 'Card' wrappers for the public site grids, build custom responsive <div> elements to achieve the glowing glassmorphism effect.",
+    "Ensure 'data-testid' attributes are attached to all key interaction points (e.g., login forms, save buttons, sponsor links).",
+    "Do not use complete transparent backgrounds for headers; apply backdrop-blur and a semi-transparent dark fill.",
+    "Use Phosphor icons or lucide-react for iconography.",
+    "DO NOT output placeholder URLs for images, use the provided Unsplash URLs.",
+    "Create deep visual hierarchy using layered z-index, glowing borders, and drop shadows on the public site."
+  ],
+  "universal_guidelines": [
+    "Avoid generic 'AI slop' aesthetics. Push boundaries with asymmetry and bold spacing.",
+    "Never apply `transition: all`. Target specific properties like `transition-transform` or `transition-colors`.",
+    "Do not center-align body text or app containers; preserve natural left-aligned reading flows.",
+    "Use sonner for toast notifications.",
+    "Ensure dark themes do not rely on 100% black (#000) or 100% white (#fff). Tint neutrals slightly for richness."
+  ]
+}
