@@ -232,3 +232,61 @@ def test_duplicate_requires_auth():
 def test_duplicate_not_found(auth):
     r = requests.post(f"{API}/sites/nope-xyz/duplicate", headers=auth)
     assert r.status_code == 404
+
+
+# ---- Domain normalization + resolve by Host (iteration 3) ----
+def test_domain_normalize_save_and_resolve_variants(auth):
+    ts = int(time.time())
+    domain = f"testdayko{ts}.com"
+    # Create site
+    r = requests.post(f"{API}/sites", headers=auth, json={"name": f"TEST_Dom_{ts}"})
+    assert r.status_code == 200
+    sid = r.json()["id"]
+    # Save domain with messy input
+    r = requests.put(f"{API}/sites/{sid}", headers=auth,
+                     json={"domain": f"https://www.{domain.upper()}/", "published": True,
+                           "settings": {"show_header": False, "show_footer": False}})
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["domain"] == domain, f"expected normalized {domain}, got {body['domain']}"
+    assert body["settings"]["show_header"] is False
+    assert body["settings"]["show_footer"] is False
+
+    # Add a card so payload has content
+    requests.post(f"{API}/sites/{sid}/cards", headers=auth,
+                  json={"title": "AD", "link": "https://example.com", "span": 1, "active": True})
+
+    # Variants should all resolve
+    for host_variant in [domain, f"www.{domain}", domain.upper(),
+                          f"https://{domain}/", f"{domain}:443"]:
+        r = requests.get(f"{API}/public/resolve", params={"host": host_variant})
+        assert r.status_code == 200, f"variant {host_variant!r} -> {r.status_code} {r.text}"
+        d = r.json()
+        assert d["id"] == sid
+        assert d["settings"]["show_header"] is False
+        assert d["settings"]["show_footer"] is False
+        assert len(d["cards"]) == 1
+
+    # Unknown host returns 404
+    r = requests.get(f"{API}/public/resolve", params={"host": f"random-nope-{ts}.com"})
+    assert r.status_code == 404
+
+    # Binding same domain to a second site -> 400
+    r2 = requests.post(f"{API}/sites", headers=auth, json={"name": f"TEST_Dom2_{ts}"})
+    sid2 = r2.json()["id"]
+    r = requests.put(f"{API}/sites/{sid2}", headers=auth, json={"domain": domain})
+    assert r.status_code == 400, r.text
+
+    # Cleanup
+    requests.delete(f"{API}/sites/{sid}", headers=auth)
+    requests.delete(f"{API}/sites/{sid2}", headers=auth)
+
+
+def test_show_header_footer_defaults_true():
+    # Demo site should have defaults True (no explicit setting saved before this iter)
+    r = requests.get(f"{API}/public/resolve", params={"slug": "demo"})
+    assert r.status_code == 200
+    s = r.json()["settings"]
+    # keys may or may not exist; if missing PublicSiteRenderer treats as true.
+    assert s.get("show_header", True) is True
+    assert s.get("show_footer", True) is True

@@ -1,0 +1,19 @@
+{
+  "summary": "Iteration 3 tested (a) backend domain normalize on save + host resolve variants and (b) show_header/show_footer toggle propagation. Added 2 new pytest tests to /app/backend/tests/backend_test.py -> all 17 tests pass in ~9s. Playwright: logged in as admin, opened a site editor, on Görünüm tab toggled set-show-header -> [data-testid=public-title] inside data-testid=live-preview disappeared; toggled set-show-footer -> <footer> inside live-preview disappeared. Restored both switches to leave demo state clean.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/backend/tests/backend_test.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "normalize_domain covers protocol/www/port/trailing slash/dot/casing; no punycode/IDN handling but out-of-scope.",
+    "resolve_site does not require published=True check by domain? It does: 'not site.get(\"published\")' returns 404 — verified. Good.",
+    "SiteSettings.show_header/show_footer default True; PublicSiteRenderer treats missing as true — backward compatible with pre-existing sites (verified via demo)."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py"],
+  "success_rate": {"backend": "100% (17/17)", "frontend": "100% (toggle flow)"},
+  "test_credentials": "harryginny700@gmail.com / admin123",
+  "seed_data_creation": "Backend test creates+deletes TEST_ prefixed sites within a single test; no persistent data left.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Domain normalize + show_header/show_footer verified end-to-end. Selectors: set-show-header, set-show-footer, live-preview, public-title. Backend endpoint /api/public/resolve accepts either slug or host; host is normalized identically to save."
+}

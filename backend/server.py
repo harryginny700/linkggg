@@ -181,6 +181,15 @@ def slugify(text: str) -> str:
     return text or new_id()[:8]
 
 
+def normalize_domain(domain: str) -> str:
+    d = (domain or "").lower().strip()
+    d = d.replace("https://", "").replace("http://", "").strip("/")
+    d = d.split("/")[0].split(":")[0].strip(".")
+    if d.startswith("www."):
+        d = d[4:]
+    return d
+
+
 def public_site_payload(site: dict, cards: list) -> dict:
     return {
         "id": site["id"],
@@ -286,7 +295,7 @@ async def update_site(site_id: str, data: SiteUpdate, current=Depends(get_curren
             raise HTTPException(status_code=400, detail="Bu slug zaten kullanımda")
         update["slug"] = slug
     if data.domain is not None:
-        domain = data.domain.lower().strip().replace("https://", "").replace("http://", "").strip("/")
+        domain = normalize_domain(data.domain)
         if domain:
             existing = await db.sites.find_one({"domain": domain, "id": {"$ne": site_id}})
             if existing:
@@ -380,7 +389,7 @@ async def resolve_site(request: Request, host: Optional[str] = None, slug: Optio
     if slug:
         site = await db.sites.find_one({"slug": slug}, {"_id": 0})
     elif host:
-        host = host.lower().strip()
+        host = normalize_domain(host)
         site = await db.sites.find_one({"domain": host}, {"_id": 0})
     if not site or not site.get("published"):
         raise HTTPException(status_code=404, detail="Yayında site bulunamadı")
