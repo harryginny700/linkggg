@@ -224,6 +224,8 @@ export default function SiteEditor() {
                       { src: "/backgrounds/casino-chips.jpg", label: "Chip & Kart" },
                       { src: "/backgrounds/casino-roulette.jpg", label: "Rulet Neon" },
                       { src: "/backgrounds/casino-gold.jpg", label: "Altın Işıltı" },
+                      { src: "/backgrounds/casino-felt.jpg", label: "Zar & Çuha" },
+                      { src: "/backgrounds/casino-cartoon.jpg", label: "3D Casino" },
                     ].map((bg, i) => {
                       const active = s.background_type === "image" && s.background_image_url === bg.src;
                       return (
