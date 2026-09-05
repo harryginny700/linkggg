@@ -145,7 +145,9 @@ class SiteSettings(BaseModel):
     card_border_color: str = "#FACC15"
     accent_color: str = "#FACC15"
     card_radius: int = 16
-    card_size: str = "md"  # sm | md | lg
+    card_size: str = "md"  # sm | md | lg | custom
+    card_height: int = 180  # used when card_size == custom
+    animation: str = "none"  # none | pulse | glow | float
     # Card decoration
     border_style: str = "solid"  # solid | neon | gradient
     border_width: int = 2
@@ -180,6 +182,9 @@ class CardInput(BaseModel):
     border_color: Optional[str] = None  # solid/neon color override
     border_from: Optional[str] = None   # gradient override
     border_to: Optional[str] = None
+    badge_text: Optional[str] = None
+    badge_color: Optional[str] = None
+    animation: Optional[str] = None  # inherit site when None
     span: int = 1  # column span for size control
     active: bool = True
 
@@ -223,6 +228,9 @@ def public_site_payload(site: dict, cards: list) -> dict:
                 "border_color": c.get("border_color"),
                 "border_from": c.get("border_from"),
                 "border_to": c.get("border_to"),
+                "badge_text": c.get("badge_text"),
+                "badge_color": c.get("badge_color"),
+                "animation": c.get("animation"),
                 "span": c.get("span", 1),
                 "clicks": c.get("clicks", 0),
             }

@@ -96,3 +96,43 @@ h1, h2, h3, h4, .font-display {
 .scrollbar-thin::-webkit-scrollbar { width: 8px; height: 8px; }
 .scrollbar-thin::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 8px; }
 .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+
+/* ---- Card animation effects ---- */
+@keyframes cardPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+}
+@keyframes cardFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-7px); }
+}
+@keyframes cardGlow {
+    0%, 100% { box-shadow: 0 0 6px 0 var(--glow, #facc15); }
+    50% { box-shadow: 0 0 20px 3px var(--glow, #facc15), 0 0 38px 6px color-mix(in srgb, var(--glow, #facc15) 45%, transparent); }
+}
+.anim-wrap { height: 100%; }
+.anim-pulse { animation: cardPulse 2.4s ease-in-out infinite; }
+.anim-float { animation: cardFloat 3.2s ease-in-out infinite; }
+.anim-glow { animation: cardGlow 2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+    .anim-pulse, .anim-float, .anim-glow { animation: none; }
+}
+
+/* ---- Corner badge ---- */
+.card-badge {
+    position: absolute;
+    top: 8px;
+    right: -34px;
+    transform: rotate(45deg);
+    width: 130px;
+    text-align: center;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 800;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    padding: 4px 0;
+    color: #0a0a0a;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    z-index: 5;
+    pointer-events: none;
+}

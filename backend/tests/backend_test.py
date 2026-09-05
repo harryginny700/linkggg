@@ -411,3 +411,96 @@ def test_card_border_override_persists_and_public(auth):
         assert by_title["Grad Card"]["border_to"] == "#EEEEEE"
     finally:
         requests.delete(f"{API}/sites/{sid}", headers=auth)
+
+
+
+# ---- New features iteration 5: badge, animation, custom card size ----
+def test_site_defaults_new_fields(auth):
+    ts = int(time.time())
+    r = requests.post(f"{API}/sites", headers=auth, json={"name": f"TEST_NF_{ts}"})
+    sid = r.json()["id"]
+    try:
+        s = requests.get(f"{API}/sites/{sid}", headers=auth).json()["site"]["settings"]
+        assert s.get("card_size") == "md"
+        assert s.get("card_height") == 180
+        assert s.get("animation") == "none"
+    finally:
+        requests.delete(f"{API}/sites/{sid}", headers=auth)
+
+
+def test_site_animation_and_custom_size_persist_public(auth):
+    ts = int(time.time())
+    r = requests.post(f"{API}/sites", headers=auth, json={"name": f"TEST_ANIM_{ts}"})
+    sid = r.json()["id"]
+    try:
+        r = requests.put(f"{API}/sites/{sid}", headers=auth, json={
+            "published": True,
+            "settings": {"animation": "glow", "card_size": "custom", "card_height": 260},
+        })
+        assert r.status_code == 200, r.text
+        s = r.json()["settings"]
+        assert s["animation"] == "glow"
+        assert s["card_size"] == "custom"
+        assert s["card_height"] == 260
+
+        slug = requests.get(f"{API}/sites/{sid}", headers=auth).json()["site"]["slug"]
+        r = requests.get(f"{API}/public/resolve", params={"slug": slug})
+        assert r.status_code == 200
+        ps = r.json()["settings"]
+        assert ps["animation"] == "glow"
+        assert ps["card_size"] == "custom"
+        assert ps["card_height"] == 260
+    finally:
+        requests.delete(f"{API}/sites/{sid}", headers=auth)
+
+
+def test_card_badge_and_animation_persist_public(auth):
+    ts = int(time.time())
+    r = requests.post(f"{API}/sites", headers=auth, json={"name": f"TEST_BADGE_{ts}"})
+    sid = r.json()["id"]
+    try:
+        requests.put(f"{API}/sites/{sid}", headers=auth, json={"published": True})
+        # Create card with badge + animation override
+        r = requests.post(f"{API}/sites/{sid}/cards", headers=auth, json={
+            "title": "Badged", "link": "https://example.com/b", "span": 1, "active": True,
+            "badge_text": "YENİ", "badge_color": "#22C55E", "animation": "pulse",
+        })
+        assert r.status_code == 200, r.text
+        c = r.json()
+        assert c["badge_text"] == "YENİ"
+        assert c["badge_color"] == "#22C55E"
+        assert c["animation"] == "pulse"
+        cid = c["id"]
+
+        # Update badge/animation via PUT
+        r = requests.put(f"{API}/cards/{cid}", headers=auth, json={
+            "title": "Badged", "link": "https://example.com/b", "span": 1, "active": True,
+            "badge_text": "VIP", "badge_color": "#EAB308", "animation": "float",
+        })
+        assert r.status_code == 200
+        c2 = r.json()
+        assert c2["badge_text"] == "VIP"
+        assert c2["badge_color"] == "#EAB308"
+        assert c2["animation"] == "float"
+
+        # Card with empty badge_text
+        r = requests.post(f"{API}/sites/{sid}/cards", headers=auth, json={
+            "title": "Plain", "link": "https://example.com/p", "span": 1, "active": True,
+        })
+        assert r.status_code == 200
+        assert not r.json().get("badge_text")
+
+        # Public payload exposes fields
+        slug = requests.get(f"{API}/sites/{sid}", headers=auth).json()["site"]["slug"]
+        r = requests.get(f"{API}/public/resolve", params={"slug": slug})
+        assert r.status_code == 200
+        cards = r.json()["cards"]
+        by_title = {x["title"]: x for x in cards}
+        assert by_title["Badged"]["badge_text"] == "VIP"
+        assert by_title["Badged"]["badge_color"] == "#EAB308"
+        assert by_title["Badged"]["animation"] == "float"
+        # Plain card: badge_text falsy, animation None
+        assert not by_title["Plain"].get("badge_text")
+        assert by_title["Plain"].get("animation") in (None, "")
+    finally:
+        requests.delete(f"{API}/sites/{sid}", headers=auth)

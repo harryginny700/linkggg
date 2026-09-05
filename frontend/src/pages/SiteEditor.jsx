@@ -33,7 +33,7 @@ function Color({ label, value, onChange, testid }) {
   );
 }
 
-const emptyCard = { title: "", link: "", logo_url: "", span: 1, bg_color: "", text_color: "", border_style: null, border_color: "", border_from: "", border_to: "", active: true };
+const emptyCard = { title: "", link: "", logo_url: "", span: 1, bg_color: "", text_color: "", border_style: null, border_color: "", border_from: "", border_to: "", badge_text: "", badge_color: "#FACC15", animation: null, active: true };
 
 export default function SiteEditor() {
   const { id } = useParams();
@@ -216,15 +216,31 @@ export default function SiteEditor() {
                     <SelectItem value="image">Görsel</SelectItem>
                   </SelectContent>
                 </Select>
-                <button
-                  type="button"
-                  data-testid="preset-casino-bg"
-                  onClick={() => { setS("background_type", "image"); setS("background_image_url", "/backgrounds/casino.jpg"); }}
-                  className="mt-2 w-full flex items-center gap-3 rounded-lg border border-zinc-800 hover:border-amber-400/60 p-2 transition-colors text-left"
-                >
-                  <img src="/backgrounds/casino.jpg" alt="" className="h-10 w-16 object-cover rounded" />
-                  <span className="text-xs text-zinc-300">Hazır: Casino Arka Planı <span className="text-zinc-500">(tek tıkla uygula)</span></span>
-                </button>
+                <div className="mt-2">
+                  <p className="text-xs text-zinc-500 mb-1.5">Hazır Arka Planlar (tek tıkla uygula)</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { src: "/backgrounds/casino.jpg", label: "Casino Salon" },
+                      { src: "/backgrounds/casino-chips.jpg", label: "Chip & Kart" },
+                      { src: "/backgrounds/casino-roulette.jpg", label: "Rulet Neon" },
+                      { src: "/backgrounds/casino-gold.jpg", label: "Altın Işıltı" },
+                    ].map((bg, i) => {
+                      const active = s.background_type === "image" && s.background_image_url === bg.src;
+                      return (
+                        <button
+                          key={bg.src}
+                          type="button"
+                          data-testid={i === 0 ? "preset-casino-bg" : `preset-bg-${i}`}
+                          onClick={() => { setS("background_type", "image"); setS("background_image_url", bg.src); }}
+                          className={`relative rounded-lg overflow-hidden border transition-colors ${active ? "border-amber-400 ring-1 ring-amber-400" : "border-zinc-800 hover:border-amber-400/60"}`}
+                        >
+                          <img src={bg.src} alt={bg.label} className="h-16 w-full object-cover" />
+                          <span className="absolute bottom-0 inset-x-0 bg-black/60 text-[10px] text-zinc-200 py-0.5 text-center">{bg.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
               {s.background_type === "color" && <Color label="Arka Plan Rengi" value={s.background_color} onChange={(v) => setS("background_color", v)} testid="set-bg-color" />}
               {s.background_type === "gradient" && (
@@ -258,6 +274,31 @@ export default function SiteEditor() {
                     <SelectItem value="sm">Küçük</SelectItem>
                     <SelectItem value="md">Orta</SelectItem>
                     <SelectItem value="lg">Büyük</SelectItem>
+                    <SelectItem value="custom">Özel (px)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {s.card_size === "custom" && (
+                <div>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-zinc-400 text-xs">Özel Yükseklik</Label>
+                    <span className="text-amber-400 font-bold text-sm">{s.card_height || 180}px</span>
+                  </div>
+                  <div className="flex items-center gap-3 mt-2">
+                    <Slider value={[s.card_height || 180]} min={80} max={500} step={10} onValueChange={([v]) => setS("card_height", v)} className="flex-1" data-testid="set-card-height" />
+                    <Input type="number" value={s.card_height || 180} onChange={(e) => setS("card_height", Number(e.target.value) || 0)} className="w-20 bg-zinc-950 border-zinc-800 h-9" data-testid="set-card-height-input" />
+                  </div>
+                </div>
+              )}
+              <div>
+                <Label className="text-zinc-400 text-xs">Hareket Efekti (Animasyon)</Label>
+                <Select value={s.animation || "none"} onValueChange={(v) => setS("animation", v)}>
+                  <SelectTrigger className="mt-1.5 bg-zinc-950 border-zinc-800" data-testid="set-animation"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+                    <SelectItem value="none">Yok</SelectItem>
+                    <SelectItem value="pulse">Nabız (büyüyüp küçülme)</SelectItem>
+                    <SelectItem value="glow">Parıltı (glow)</SelectItem>
+                    <SelectItem value="float">Yüzen (yukarı-aşağı)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -495,6 +536,30 @@ export default function SiteEditor() {
                   <Color label="Gradyan Bitiş" value={cardDialog.card.border_to} onChange={(v) => setCardDialog((p) => ({ ...p, card: { ...p.card, border_to: v } }))} />
                 </div>
               )}
+              <div className="border-t border-zinc-800 pt-3">
+                <Label className="text-zinc-400 text-xs">Köşe Rozeti (opsiyonel)</Label>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <Input value={cardDialog.card.badge_text || ""} onChange={(e) => setCardDialog((p) => ({ ...p, card: { ...p.card, badge_text: e.target.value } }))} data-testid="card-badge-text" className="bg-zinc-950 border-zinc-800" placeholder="YENİ / VIP / %100 BONUS" />
+                  <input type="color" value={cardDialog.card.badge_color || "#FACC15"} onChange={(e) => setCardDialog((p) => ({ ...p, card: { ...p.card, badge_color: e.target.value } }))} className="h-9 w-11 rounded-md bg-transparent border border-zinc-800 shrink-0" title="Rozet rengi" />
+                </div>
+                <p className="text-[11px] text-zinc-600 mt-1">Boş bırakırsan rozet görünmez.</p>
+              </div>
+              <div>
+                <Label className="text-zinc-400 text-xs">Hareket Efekti (bu kolon için)</Label>
+                <Select
+                  value={cardDialog.card.animation || "inherit"}
+                  onValueChange={(v) => setCardDialog((p) => ({ ...p, card: { ...p.card, animation: v === "inherit" ? null : v } }))}
+                >
+                  <SelectTrigger className="mt-1.5 bg-zinc-950 border-zinc-800" data-testid="card-animation"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+                    <SelectItem value="inherit">Site ayarını kullan</SelectItem>
+                    <SelectItem value="none">Yok</SelectItem>
+                    <SelectItem value="pulse">Nabız</SelectItem>
+                    <SelectItem value="glow">Parıltı</SelectItem>
+                    <SelectItem value="float">Yüzen</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div>
                 <Label className="text-zinc-400 text-xs">Genişlik (kaç kolon kaplasın)</Label>
                 <Select value={String(cardDialog.card.span)} onValueChange={(v) => setCardDialog((p) => ({ ...p, card: { ...p.card, span: Number(v) } }))}>

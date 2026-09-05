@@ -55,6 +55,7 @@ function AdCard({ c, s, minH }) {
     minHeight: minH,
     border: isGradient ? "none" : `${bWidth}px solid ${solidColor}`,
     boxShadow: isNeon ? `0 0 10px ${solidColor}99, inset 0 0 8px ${solidColor}55` : "inset 0 1px 0 rgba(255,255,255,0.04)",
+    position: "relative",
   };
 
   const textStyle = {
@@ -64,6 +65,8 @@ function AdCard({ c, s, minH }) {
     lineHeight: 1.2,
   };
 
+  const badgeColor = c.badge_color || accent;
+
   return (
     <div
       className="ad-card h-full"
@@ -72,6 +75,9 @@ function AdCard({ c, s, minH }) {
       onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.4)")}
     >
       <div className="h-full flex flex-col overflow-hidden" style={innerStyle}>
+        {c.badge_text ? (
+          <span className="card-badge" style={{ backgroundColor: badgeColor }}>{c.badge_text}</span>
+        ) : null}
         {c.logo_url ? (
           <div className="flex-1 flex items-center justify-center p-3 min-h-[70px]">
             <img src={c.logo_url} alt="" className="max-h-full max-w-full object-contain" style={{ maxHeight: 120 }} />
@@ -108,7 +114,7 @@ export default function PublicSiteRenderer({ data, previewMode = false }) {
   if (!data) return null;
   const cards = data.cards || [];
   const accent = s.accent_color || "#FACC15";
-  const minH = sizeMap[s.card_size] || 180;
+  const minH = s.card_size === "custom" ? (s.card_height || 180) : (sizeMap[s.card_size] || 180);
   const showHeader = s.show_header !== false;
   const showFooter = s.show_footer !== false;
 
@@ -155,31 +161,39 @@ export default function PublicSiteRenderer({ data, previewMode = false }) {
           <div className="text-center text-zinc-500 py-20">Henüz reklam kolonu eklenmemiş.</div>
         ) : (
           <div className="ad-grid" style={{ "--cols": s.columns || 3 }}>
-            {cards.map((c, idx) => (
-              <motion.div
-                key={c.id}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, delay: Math.min(idx * 0.04, 0.5) }}
-                style={{ gridColumn: `span ${Math.min(c.span || 1, s.columns || 3)}` }}
-              >
-                {previewMode ? (
-                  <div data-testid={`preview-card-${idx}`} className="h-full">
-                    <AdCard c={c} s={s} minH={minH} />
+            {cards.map((c, idx) => {
+              const anim = c.animation || s.animation || "none";
+              const animClass = anim === "pulse" ? "anim-pulse" : anim === "glow" ? "anim-glow" : anim === "float" ? "anim-float" : "";
+              const glowColor = c.border_color || c.border_from || s.card_border_color || accent;
+              const content = previewMode ? (
+                <div data-testid={`preview-card-${idx}`} className="h-full">
+                  <AdCard c={c} s={s} minH={minH} />
+                </div>
+              ) : (
+                <a
+                  href={goUrl(c.id)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-testid={`sponsor-card-${idx}`}
+                  className="block h-full"
+                >
+                  <AdCard c={c} s={s} minH={minH} />
+                </a>
+              );
+              return (
+                <motion.div
+                  key={c.id}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, delay: Math.min(idx * 0.04, 0.5) }}
+                  style={{ gridColumn: `span ${Math.min(c.span || 1, s.columns || 3)}` }}
+                >
+                  <div className={`anim-wrap ${animClass}`} style={{ "--glow": glowColor, borderRadius: `${s.card_radius ?? 16}px` }}>
+                    {content}
                   </div>
-                ) : (
-                  <a
-                    href={goUrl(c.id)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    data-testid={`sponsor-card-${idx}`}
-                    className="block h-full"
-                  >
-                    <AdCard c={c} s={s} minH={minH} />
-                  </a>
-                )}
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </div>
         )}
 
